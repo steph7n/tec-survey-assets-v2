@@ -181,3 +181,65 @@ p {
     flex: 1;
   }
 }
+
+/* =========================================
+   Form & Input Styles
+========================================= */
+.card-title {
+  margin-bottom: 12px;
+}
+
+.form-group {
+  margin-top: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #202124;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #C4C4C4;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #15417C;
+  box-shadow: 0 0 0 2px rgba(21, 65, 124, 0.15);
+}
+
+.form-error {
+  margin-top: 8px;
+  color: #C62828;
+  font-size: 13px;
+}
+
+/* =========================================
+   Login Page Refinements
+========================================= */
+.login-card {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.login-card .login-actions {
+  margin-top: 20px; /* extra space between input and Continue button */
+}
+
+.text-hint {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #5f6368; /* subtler, hint-style text */
+}
+
+.login-card .login-instruction {
+  margin-bottom: 8px; /* breathing room before the input field */
+}
