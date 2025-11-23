@@ -232,10 +232,6 @@ function initiateSurvey() {
 }
 
 function doGet(e) {
-  if (e && e.parameter && e.parameter.asset === 'schoolLogo') {
-    return serveSchoolLogo();
-  }
-
   const page = e && e.parameter && e.parameter.page ? e.parameter.page : "splash";
 
   const allowedPages = [
@@ -256,19 +252,3 @@ function doGet(e) {
     .setTitle("Tabgha Education Center School Survey");
 }
 
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-function serveSchoolLogo() {
-  const b64 = HtmlService.createTemplateFromFile("schoolLogo").evaluate().getContent();
-  const raw = Utilities.base64Decode(b64.split(",")[1]);
-
-  return ContentService
-    .createOutput(raw)
-    .setMimeType(ContentService.MimeType.PNG);
-}
-
-function getWebAppUrl_() {
-  return ScriptApp.getService().getUrl();
-}
