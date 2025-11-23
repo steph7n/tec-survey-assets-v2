@@ -1,0 +1,18 @@
+// ===============================================
+// Set the persistent top-bar title dynamically
+// ===============================================
+document.addEventListener("DOMContentLoaded", () => {
+  const year = new Date().getFullYear();
+  const titleEl = document.getElementById("app-title");
+
+  if (titleEl) {
+    titleEl.textContent = `School Survey ${year}`;
+  }
+});
+
+// =================================================
+// Optional helper for navigation (future usage)
+// =================================================
+function navigate(pageName) {
+  window.location.href = `?page=${pageName}`;
+}

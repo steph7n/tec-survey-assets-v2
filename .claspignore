@@ -1,0 +1,13 @@
+# Ignore node and build artifacts
+node_modules/
+package-lock.json
+
+# Ignore local raw CSS/JS (we use GAS templates)
+style.css
+main.js
+
+# Allow all HTML files
+!*.html
+
+# Ignore accidentally generated HTML from JS source
+*main.js.html

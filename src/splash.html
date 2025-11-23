@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Splash Page</title>
+  <!-- Local (VS Code Preview) -->
+  <template data-env="local">
+    <link rel="stylesheet" href="style.css" />
+  </template>
+
+  <!-- Apps Script Production -->
+  <?!= include("style"); ?>
+</head>
+
+<body>
+  <!-- Top Bar -->
+  <header class="app-bar">
+    <img id="app-logo" alt="School Logo" class="app-bar__logo" />
+    <div id="app-title" class="app-bar__title"></div>
+  </header>
+
+  <main class="page-container">
+    <section class="page-content">
+      <div class="card card--centered splash-card">
+        <h1 class="splash-title">Welcome to Tabgha School Survey</h1>
+        <p class="text-secondary splash-subtitle">
+          Please choose how you would like to sign in.
+        </p>
+
+        <div class="splash-actions">
+          <a href="?page=loginParent"
+             class="btn btn--primary btn--block splash-btn">
+            Login as Parent
+          </a>
+
+          <a href="?page=loginFaculty"
+             class="btn btn--outlined btn--block splash-btn">
+            Login as Student / Faculty
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      // CSS switching
+      const localTemplate = document.querySelector('template[data-env="local"]');
+      const gasBlock = document.querySelector('#gas-style');
+
+      const isLocal = !(typeof google !== "undefined" && google.script);
+
+      if (isLocal) {
+        if (localTemplate) {
+          document.head.insertAdjacentHTML("beforeend", localTemplate.innerHTML);
+        }
+        if (gasBlock) gasBlock.style.display = "none";
+      } else {
+        if (localTemplate) localTemplate.remove();
+      }
+
+      // --- FIX: Wait for google.script to become available ---
+      function waitForGoogle(callback) {
+        if (typeof google !== "undefined" && google.script) {
+          callback();
+        } else {
+          setTimeout(() => waitForGoogle(callback), 50);
+        }
+      }
+
+      const logo = document.getElementById("app-logo");
+
+      if (isLocal) {
+        // Local preview
+        logo.src = "school-logo.png";
+      } else {
+        // GAS mode (delayed until google.script is ready)
+        waitForGoogle(() => {
+          google.script.run
+            .withSuccessHandler(url => {
+              logo.src = url + "?asset=schoolLogo";
+            })
+            .getWebAppUrl_();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
