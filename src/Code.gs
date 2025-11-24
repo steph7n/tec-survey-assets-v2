@@ -262,6 +262,14 @@ function getCurrentConfigFileId_() {
 }
 
 /**
+ * Returns the base URL of this web app deployment (the /exec URL).
+ * Used by client-side code to build correct navigation links.
+ */
+function getWebAppUrl_() {
+  return ScriptApp.getService().getUrl();
+}
+
+/**
  * Validates a parent secret code against the StudentDB sheet
  * in the current Yearly Config file.
  *
@@ -354,7 +362,11 @@ function doGet(e) {
 
   const fileToLoad = allowedPages.includes(page) ? page : "splash";
 
-  return HtmlService.createTemplateFromFile(fileToLoad)
+  // Create template and inject the web app URL
+  const template = HtmlService.createTemplateFromFile(fileToLoad);
+  template.baseUrl = ScriptApp.getService().getUrl();
+
+  return template
     .evaluate()
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .setTitle("Tabgha Education Center School Survey");

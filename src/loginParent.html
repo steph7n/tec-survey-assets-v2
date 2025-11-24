@@ -12,7 +12,7 @@
   />
 </head>
 
-<body>
+<body data-base-url="<?= baseUrl ?>">
   <!-- Top Bar (same as splash) -->
   <header class="app-bar">
     <img
@@ -69,7 +69,11 @@
 
   <script>
     (function () {
-      const isGAS = typeof google !== "undefined" && google.script;
+      // Detect whether this is running inside the real Apps Script web app
+      const serverBaseUrl =
+        (document.body && document.body.getAttribute("data-base-url")) || "";
+      const isWebApp =
+        typeof serverBaseUrl === "string" && serverBaseUrl.startsWith("http");
 
       // Set dynamic top-bar title with current year
       const titleEl = document.getElementById("app-title");
@@ -110,7 +114,7 @@
 
       if (loginBtn && codeInput && errorEl) {
         loginBtn.addEventListener("click", function () {
-          const code = codeInput.value.trim();
+          const code = codeInput.value.trim().toUpperCase();
 
           if (!code) {
             errorEl.textContent = "Please enter your secret code.";
@@ -129,7 +133,12 @@
 
           errorEl.hidden = true;
 
-          if (isGAS) {
+          if (
+            isWebApp &&
+            typeof google !== "undefined" &&
+            google.script &&
+            google.script.run
+          ) {
             loginBtn.disabled = true;
 
             google.script.run
