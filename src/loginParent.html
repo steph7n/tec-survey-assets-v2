@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parent Login – Tabgha School Survey</title>
+
+  <!-- Shared CSS from GitHub Pages -->
+  <link
+    rel="stylesheet"
+    href="https://steph7n.github.io/tec-survey-assets/src/style.css"
+  />
+</head>
+
+<body>
+  <!-- Top Bar (same as splash) -->
+  <header class="app-bar">
+    <img
+      id="app-logo"
+      alt="School Logo"
+      class="app-bar__logo"
+      src="https://steph7n.github.io/tec-survey-assets/src/school-logo.png"
+    />
+    <div id="app-title" class="app-bar__title"></div>
+  </header>
+
+  <main class="page-container">
+    <section class="page-content">
+      <div class="card card--centered login-card">
+        <h1 class="card-title">Parent Login</h1>
+        <p class="form-label login-instruction">
+          Please enter the <strong>secret code</strong> provided by the school for your child.
+        </p>
+
+        <div class="form-group">
+          <label for="secret-code" class="form-label">Secret code</label>
+          <input
+            id="secret-code"
+            type="text"
+            class="form-input"
+            autocomplete="off"
+            maxlength="6"
+            minlength="6"
+            pattern="[A-Za-z0-9]{6}"
+            required
+            placeholder="e.g. A1B2C3"
+          />
+        </div>
+
+        <p id="code-error" class="form-error" hidden></p>
+
+        <div class="login-actions">
+          <button
+            id="btn-parent-login"
+            type="button"
+            class="btn btn--primary btn--block"
+            disabled
+          >
+            Continue
+          </button>
+        </div>
+
+        <p class="text-hint">
+          If you have more than one child, you will receive a different code for each child.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const isGAS = typeof google !== "undefined" && google.script;
+
+      // Set dynamic top-bar title with current year
+      const titleEl = document.getElementById("app-title");
+      const currentYear = new Date().getFullYear();
+      if (titleEl) {
+        titleEl.textContent =
+          "Tabgha Education Center School Survey " + currentYear;
+      }
+
+      // Simple front-end validation placeholder
+      const codeInput = document.getElementById("secret-code");
+      const loginBtn = document.getElementById("btn-parent-login");
+      const errorEl = document.getElementById("code-error");
+
+      if (codeInput && loginBtn) {
+        codeInput.addEventListener("input", function () {
+          let val = codeInput.value.toUpperCase();
+
+          // Strip everything except A–Z and 0–9 (prevents whitespace and symbols)
+          val = val.replace(/[^A-Z0-9]/g, "");
+
+          // Enforce max length 6
+          if (val.length > 6) {
+            val = val.slice(0, 6);
+          }
+
+          codeInput.value = val;
+
+          // Enable the Continue button only when exactly 6 chars
+          if (val.length === 6) {
+            loginBtn.disabled = false;
+            if (errorEl) errorEl.hidden = true;
+          } else {
+            loginBtn.disabled = true;
+          }
+        });
+      }
+
+      if (loginBtn && codeInput && errorEl) {
+        loginBtn.addEventListener("click", function () {
+          const code = codeInput.value.trim();
+
+          if (!code) {
+            errorEl.textContent = "Please enter your secret code.";
+            errorEl.hidden = false;
+            codeInput.focus();
+            return;
+          }
+
+          if (!/^[A-Za-z0-9]{6}$/.test(code)) {
+            errorEl.textContent =
+              "Secret code must be 6 letters/numbers (no spaces).";
+            errorEl.hidden = false;
+            codeInput.focus();
+            return;
+          }
+
+          errorEl.hidden = true;
+
+          if (isGAS) {
+            loginBtn.disabled = true;
+
+            google.script.run
+              .withSuccessHandler(function (result) {
+                loginBtn.disabled = false;
+
+                if (!result || !result.success) {
+                  errorEl.textContent =
+                    (result && result.message) ||
+                    "Secret code is invalid. Please confirm the secret code with your child's homeroom teacher";
+                  errorEl.hidden = false;
+                  return;
+                }
+
+                // Temporary success behaviour; later this will redirect to the survey page.
+                alert(
+                  "Secret code accepted for " +
+                    (result.studentName || "your child") +
+                    ". (Next step: load the survey page.)"
+                );
+              })
+              .parentLogin(code);
+          } else {
+            // Local preview fallback for VS Code / static file
+            alert(
+              "Local preview only. In the real web app, this would validate code '" +
+                code +
+                "' against StudentDB in the Yearly Config file."
+            );
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
