@@ -12,7 +12,7 @@
   />
 </head>
 
-<body data-base-url="<?= baseUrl ?>">
+<body>
   <!-- Top Bar -->
   <header class="app-bar">
     <img
@@ -27,28 +27,19 @@
   <main class="page-container">
     <section class="page-content">
       <div class="card card--centered login-card" id="login-card">
-
         <!-- Dynamic content inserted by JS -->
         <div id="login-content" class="login-dynamic"></div>
-
       </div>
     </section>
   </main>
 
   <script>
     (function () {
-      const baseUrl =
-        (document.body && document.body.getAttribute("data-base-url")) || "";
-      const isWebApp =
-        typeof baseUrl === "string" && baseUrl.startsWith("http");
+      const GAS_BASE_URL = "https://script.google.com/macros/s/AKfycbwovbgTtjg0C9fQiRc_9F31eW7QhQl6O8xQpjLQMsmwHxZk8Dg3Cpf9SgYX1mbfYLSr/exec";
 
-      // Set dynamic top bar title
-      const titleEl = document.getElementById("app-title");
-      const currentYear = new Date().getFullYear();
-      if (titleEl) {
-        titleEl.textContent =
-          "Tabgha Education Center School Survey " + currentYear;
-      }
+      // ---------------------------
+      // Utility helpers
+      // ---------------------------
 
       const contentEl = document.getElementById("login-content");
 
@@ -56,111 +47,163 @@
         if (contentEl) contentEl.innerHTML = html;
       }
 
-      // Loading state
+      function goto(path) {
+        // Navigate to another static page in the same folder
+        window.location.href = path;
+      }
+
+      function getCurrentUrl() {
+        return window.location.href;
+      }
+
+      // Set dynamic top bar title
+      (function setTopBarTitle() {
+        const titleEl = document.getElementById("app-title");
+        const currentYear = new Date().getFullYear();
+        if (titleEl) {
+          titleEl.textContent =
+            "Tabgha Education Center School Survey " + currentYear;
+        }
+      })();
+
+      // Initial loading state
       render(`
         <h1 class="card-title">Faculty Login</h1>
         <p class="form-label">Checking login status…</p>
       `);
 
       // ---------------------------
-      // Redirect helpers
+      // Login flow
       // ---------------------------
 
-      function googleLogin() {
-        const redirectUrl = encodeURIComponent(window.location.href);
-        const oauthUrl =
-          "https://accounts.google.com/o/oauth2/auth" +
-          "?hd=tabgha.education" +
-          "&prompt=select_account" +
-          "&redirect_uri=" + redirectUrl +
-          "&response_type=token" +
-          "&client_id=none"; // Dummy client ID just to force chooser
+      function startGoogleLogin() {
+        // Delegate the real OAuth flow to Apps Script.
+        // The backend should:
+        //  - Start Google OAuth
+        //  - Restrict to @tabgha.education
+        //  - Redirect back here after login
+        const redirectUrl = encodeURIComponent(getCurrentUrl());
+        const url =
+          GAS_BASE_URL +
+          "?action=facultyLoginStart" +
+          "&redirect=" + redirectUrl;
 
-        window.location.href = oauthUrl;
+        window.location.href = url;
       }
 
-      function goto(url) {
-        if (!baseUrl) return;
-        window.location.href = baseUrl + "/" + url;
+      function handleLoginResult(result) {
+        if (!result || typeof result !== "object") {
+          render(`<p class="form-error">Unexpected login response.</p>`);
+          return;
+        }
+
+        // Expected result structure:
+        // {
+        //   loggedIn: true/false,
+        //   email: "",
+        //   validDomain: true/false,
+        //   status: "superadmin" | "faculty" | "student" | "inactive"
+        // }
+
+        // Case 1: Not logged in at all
+        if (!result.loggedIn) {
+          render(`
+            <h1 class="card-title">Faculty Login</h1>
+            <p class="form-label">
+              Please log in using your Tabgha Education Google account.
+            </p>
+            <button class="btn btn--primary btn--block" id="btn-login">
+              Login with Google
+            </button>
+          `);
+          const btn = document.getElementById("btn-login");
+          if (btn) btn.onclick = startGoogleLogin;
+          return;
+        }
+
+        // Case 2: Logged in but wrong domain
+        if (!result.validDomain) {
+          render(`
+            <h1 class="card-title">Wrong Account</h1>
+            <p class="form-error">
+              You are logged in as <strong>${result.email}</strong><br>
+              This account cannot access the survey.<br><br>
+              Please log in with your <strong>@tabgha.education</strong> account.
+            </p>
+            <button class="btn btn--primary btn--block" id="btn-switch">
+              Switch Account
+            </button>
+          `);
+          const btn = document.getElementById("btn-switch");
+          if (btn) btn.onclick = startGoogleLogin;
+          return;
+        }
+
+        // Case 3: Domain valid → check status
+        if (result.status === "superadmin") {
+          goto("admin.html");
+          return;
+        }
+
+        if (result.status === "faculty" || result.status === "student") {
+          goto("surveyHome.html");
+          return;
+        }
+
+        // Case 4: Valid domain but email not found → inactive page
+        if (result.status === "inactive") {
+          goto("surveyInactive.html");
+          return;
+        }
+
+        // Fallback
+        render(`<p class="form-error">Unknown login state.</p>`);
       }
 
-      // ---------------------------
-      // Run backend validator (GAS)
-      // ---------------------------
+      async function checkLoginStatus() {
+        if (!GAS_BASE_URL || !GAS_BASE_URL.startsWith("http")) {
+          // Local preview without backend configured
+          render(`
+            <h1 class="card-title">Faculty Login</h1>
+            <p class="form-label">Local preview only.</p>
+            <p class="text-hint">
+              Configure <code>GAS_BASE_URL</code> in the script to enable live login.
+            </p>
+          `);
+          return;
+        }
 
-      if (isWebApp && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function (result) {
-            if (!result) {
-              render(`<p class="form-error">Unexpected error.</p>`);
-              return;
+        try {
+          const response = await fetch(
+            GAS_BASE_URL + "?action=checkFacultyLoginStatus",
+            {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                "Accept": "application/json",
+              },
             }
+          );
 
-            // Result structure:
-            // {
-            //   loggedIn: true/false,
-            //   email: "",
-            //   validDomain: true/false,
-            //   status: "superadmin" | "faculty" | "student" | "inactive"
-            // }
+          if (!response.ok) {
+            throw new Error("Network error: " + response.status);
+          }
 
-            // Case 1: Not logged in at all
-            if (!result.loggedIn) {
-              render(`
-                <h1 class="card-title">Faculty Login</h1>
-                <p class="form-label">Please log in using your Tabgha Education Google account.</p>
-                <button class="btn btn--primary btn--block" id="btn-login">Login with Google</button>
-              `);
-              document.getElementById("btn-login").onclick = googleLogin;
-              return;
-            }
-
-            // Case 2: Logged in but wrong domain
-            if (!result.validDomain) {
-              render(`
-                <h1 class="card-title">Wrong Account</h1>
-                <p class="form-error">
-                  You are logged in as <strong>${result.email}</strong><br>
-                  This account cannot access the survey.<br><br>
-                  Please log in with your <strong>@tabgha.education</strong> account.
-                </p>
-                <button class="btn btn--primary btn--block" id="btn-switch">
-                  Switch Account
-                </button>
-              `);
-              document.getElementById("btn-switch").onclick = googleLogin;
-              return;
-            }
-
-            // Case 3: Domain valid → check status
-            if (result.status === "superadmin") {
-              goto("admin.html");
-              return;
-            }
-
-            if (result.status === "faculty" || result.status === "student") {
-              goto("surveyHome.html");
-              return;
-            }
-
-            // Case 4: Valid domain but email not found → inactive page
-            if (result.status === "inactive") {
-              goto("surveyInactive.html");
-              return;
-            }
-
-            // Fallback
-            render(`<p class="form-error">Unknown login state.</p>`);
-          })
-          .checkFacultyLoginStatus();
-      } else {
-        // Local preview
-        render(`
-          <h1 class="card-title">Faculty Login</h1>
-          <p class="form-label">Local preview only.</p>
-          <p class="text-hint">In live mode, this page checks your Google account and redirects automatically.</p>
-        `);
+          const result = await response.json();
+          handleLoginResult(result);
+        } catch (error) {
+          console.error("Login status check failed:", error);
+          render(`
+            <h1 class="card-title">Faculty Login</h1>
+            <p class="form-error">
+              Unable to contact the login server. Please try again later.
+            </p>
+          `);
+        }
       }
+
+      // Kick off login status check on load
+      checkLoginStatus();
     })();
   </script>
 </body>
